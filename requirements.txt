@@ -1,0 +1,9 @@
+torch==1.11.0
+h5py
+numpy
+scipy
+matplotlib
+scikit-learn
+librosa
+scikit-image
+torchaudoo
