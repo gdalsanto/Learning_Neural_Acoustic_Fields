@@ -55,8 +55,13 @@ class soundsamples(torch.utils.data.Dataset):
         with open(os.path.join(mean_std_base, room_name+".pkl"), "rb") as mean_std_ff:
             mean_std = pickle.load(mean_std_ff)
             print("Loaded mean std")
+            print("Mean shape:", mean_std[0].shape)
+            print("Mean min/max:", np.min(mean_std[0]), np.max(mean_std[0]))
+            print("Std shape:", mean_std[1].shape)
+            print("Std min/max:", np.min(mean_std[1]), np.max(mean_std[1]))
         self.mean = torch.from_numpy(mean_std[0]).float()[None]
         self.std = 3.0 * torch.from_numpy(mean_std[1]).float()[None]
+        print("Final std min/max:", torch.min(self.std), torch.max(self.std))
 
         with open(coor_path, "r") as f:
             lines = f.readlines()
@@ -95,6 +100,9 @@ class soundsamples(torch.utils.data.Dataset):
                 query_str = orientation + "_" + (pos_id.split(".")[0]).split("_")[0]
 
                 spec_data = torch.from_numpy(self.sound_data[query_str][:]).float()
+                if torch.isnan(spec_data).any():
+                    print(f"Warning: NaN in spec_data for {query_str}")
+                    spec_data = torch.nan_to_num(spec_data, nan=0.0)
                 position = (pos_id.split(".")[0]).split("_")
                 spec_data = spec_data[:,:,:self.max_len]
 
@@ -104,6 +112,11 @@ class soundsamples(torch.utils.data.Dataset):
 
                 actual_spec_len = spec_data.shape[2]
                 spec_data = (spec_data - self.mean[:,:,:actual_spec_len])/self.std[:,:,:actual_spec_len]
+                if torch.isnan(spec_data).any():
+                    print(f"Warning: NaN after normalization for {query_str}")
+                    print("Mean min/max:", torch.min(self.mean), torch.max(self.mean))
+                    print("Std min/max:", torch.min(self.std), torch.max(self.std))
+                    spec_data = torch.nan_to_num(spec_data, nan=0.0)
                 # 2, freq, time
                 sound_size = spec_data.shape
                 selected_time = np.random.randint(0, sound_size[2], self.num_samples)
@@ -112,7 +125,8 @@ class soundsamples(torch.utils.data.Dataset):
 
                 non_norm_start = (np.array(self.positions[position[0]])[:2] + np.random.normal(0, 1, 2)*self.pos_reg_amt)
                 non_norm_end = (np.array(self.positions[position[1]])[:2]+ np.random.normal(0, 1, 2)*self.pos_reg_amt)
-                start_position = (torch.from_numpy((non_norm_start - self.min_pos)/(self.max_pos-self.min_pos))[None] - 0.5) * 2.0
+                eps = 1e-6
+                start_position = (torch.from_numpy((non_norm_start - self.min_pos)/((self.max_pos-self.min_pos)+eps))[None] - 0.5) * 2.0
                 start_position = torch.clamp(start_position, min=-1.0, max=1.0)
 
                 end_position = (torch.from_numpy((non_norm_end - self.min_pos)/(self.max_pos-self.min_pos))[None] - 0.5) * 2.0
@@ -123,6 +137,9 @@ class soundsamples(torch.utils.data.Dataset):
                 total_non_norm_position = torch.cat((torch.from_numpy(non_norm_start)[None], torch.from_numpy(non_norm_end)[None]), dim=1).float()
 
                 selected_total = spec_data[:,selected_freq,selected_time]
+                if torch.isnan(selected_total).any():
+                    print(f"Warning: NaN in selected_total for {query_str}")
+                    selected_total = torch.nan_to_num(selected_total, nan=0.0)
                 loaded = True
 
             except Exception as e:
@@ -192,5 +209,11 @@ class soundsamples(torch.utils.data.Dataset):
 
         selected_total = spec_data[:, selected_freq, selected_time]
         return selected_total, degree, total_position, total_non_norm_position, 2.0*torch.from_numpy(selected_freq).float()/255.0 - 1.0, 2.0*torch.from_numpy(selected_time).float()/float(self.max_len-1)-1.0
+
+    def validate_data(self, data):
+        if torch.isnan(data).any():
+            print("Warning: NaN detected in data")
+            return torch.nan_to_num(data, nan=0.0)
+        return data
 
 

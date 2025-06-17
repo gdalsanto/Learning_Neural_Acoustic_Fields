@@ -77,7 +77,18 @@ class get_spec():
         real_component = np.abs(transformed_data)
         img_component = np.angle(transformed_data)
         gen_if = if_compute(img_component)/np.pi
-        return np.log(real_component+1e-3), gen_if, img_component
+        
+        # Add checks
+        if np.any(np.isnan(real_component)):
+            print("Warning: NaN in real_component")
+            real_component = np.nan_to_num(real_component, nan=0.0)
+        
+        log_mag = np.log(real_component+1e-3)
+        if np.any(np.isnan(log_mag)):
+            print("Warning: NaN in log_mag")
+            log_mag = np.nan_to_num(log_mag, nan=0.0)
+        
+        return log_mag, gen_if, img_component
 
 def get_wave_if(input_stft, input_if):
     # 2 chanel input of shape [2,freq,time]
@@ -107,8 +118,8 @@ if __name__ == "__main__":
     with open(pkl_path, 'rb') as f:
         raw_data = pickle.load(f)
 
-    mag_path = "data-local/georg-raw-binaural/magnitudes"
-    phase_path = "data-local/georg-raw-binaural/phases"
+    mag_path = "data-local/georg-binaural/magnitudes"
+    phase_path = "data-local/georg-binaural/phases"
 
     # create directories if they do not exist
     os.makedirs(mag_path, exist_ok=True)
@@ -195,7 +206,9 @@ if __name__ == "__main__":
         print("Computing mean")
         mean_val = np.mean(all_arrs, axis=(0,1))
         print("Computing std")
-        std_val = np.std(all_arrs, axis=(0,1))+0.1
+        std_val = np.std(all_arrs, axis=(0,1))
+        std_val = np.clip(std_val, a_min=1e-6, a_max=None)  # Ensure no zeros
+        print("Std min/max after clip:", np.min(std_val), np.max(std_val))
         
         plt.imshow(all_arrs[0][0])
         plt.show()
