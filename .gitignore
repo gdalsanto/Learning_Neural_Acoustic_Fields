@@ -1,3 +1,4 @@
 naf-env/
 .vscode
 /data-local
+__pycache__/
