@@ -53,7 +53,7 @@ class Options():
         parser.add_argument('--batch_size', default=20, type=int)
         parser.add_argument('--reg_eps', default=1e-1, type=float) # Noise to regularize positions
         parser.add_argument('--pixel_count', default=2000, type=int)  # Noise to regularize positions
-        parser.add_argument('--lr_init', default=5e-4, type=float)  # Starting learning rate
+        parser.add_argument('--lr_init', default=1e-4, type=float)  # Starting learning rate
         parser.add_argument('--lr_decay', default=1e-1, type=float)  # Learning rate decay rate
 
         # network arguments

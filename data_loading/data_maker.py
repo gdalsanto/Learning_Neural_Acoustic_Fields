@@ -118,8 +118,8 @@ if __name__ == "__main__":
     with open(pkl_path, 'rb') as f:
         raw_data = pickle.load(f)
 
-    mag_path = "data-local/georg-binaural/magnitudes"
-    phase_path = "data-local/georg-binaural/phases"
+    mag_path = "metadata/magnitudes"
+    phase_path = "metadata/phases"
 
     # create directories if they do not exist
     os.makedirs(mag_path, exist_ok=True)
@@ -167,7 +167,7 @@ if __name__ == "__main__":
                 cur_file = raw_data.train_brirs[ff, orientation, ...].astype(np.float32)
                 # change the shape from [n_samples, channels] to [channels, n_samples]
                 cur_file = cur_file.T
-                loaded_wav = load_audio(cur_file)
+                loaded_wav = load_audio(cur_file[:, :int(32000*0.5)])
             except Exception as e:
                 print("0 length wav", cur_file, e)
                 continue
@@ -189,7 +189,7 @@ if __name__ == "__main__":
 
  
     raw_path = mag_path
-    mean_std = "data-local/georg-binaural/magnitude_mean_std"
+    mean_std = "metadata/mean_std"
     os.makedirs(mean_std, exist_ok=True)
     max_len_dict = {room_name: np.max(length_tracker)}
 
@@ -224,7 +224,7 @@ if __name__ == "__main__":
             pickle.dump([mean_val, std_val], mean_std_file)
     
     # Create points.txt
-    points_file_path = os.path.join('data-local', room_name, 'points.txt')
+    points_file_path = os.path.join('metadata', room_name, 'points.txt')
 
     with open(points_file_path, 'w') as f:
         for i, pos in enumerate(np.concatenate((raw_data.train_receiver_pos, raw_data.infer_receiver_pos), axis=0)):
@@ -232,7 +232,7 @@ if __name__ == "__main__":
         # write the sound source position
         f.write("{:04d}\t2.0\t2.0\t1.5\n".format(i+1))
     # Create _minmax.pkl
-    minmax_file_path = os.path.join('data-local', f'{room_name}_minmax.pkl')
+    minmax_file_path = os.path.join('metadata', 'minmax',f'{room_name}_minmax.pkl')
     min_pos = np.min(np.concatenate((raw_data.train_receiver_pos, raw_data.infer_receiver_pos), axis=0), axis=0)
     max_pos = np.max(np.concatenate((raw_data.train_receiver_pos, raw_data.infer_receiver_pos), axis=0), axis=0)
 
