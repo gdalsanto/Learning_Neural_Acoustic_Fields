@@ -1,10 +1,11 @@
 import torch
-torch.backends.cudnn.benchmark = True
+# Remove CUDA-specific benchmark setting
+# torch.backends.cudnn.benchmark = True
 from inspect import getsourcefile
 import os.path as path, sys
 current_dir = path.dirname(path.abspath(getsourcefile(lambda:0)))
 sys.path.insert(0, current_dir[:current_dir.rfind(path.sep)])
-
+import numpy as np
 from data_loading.sound_loader import soundsamples
 import pickle
 import os
@@ -18,7 +19,10 @@ def to_torch(input_arr):
 
 def test_net(rank, other_args):
     pi = math.pi
-    output_device = rank
+    # Set device based on availability
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    output_device = device
+    
     print("creating dataset")
     dataset = soundsamples(other_args)
     xyz_embedder = embedding_module_log(num_freqs=other_args.num_freqs, ch_dim=2, max_freq=7).to(output_device)
@@ -31,7 +35,8 @@ def test_net(rank, other_args):
     if len(current_files)>0:
         latest = current_files[-1]
         print("Identified checkpoint {}".format(latest))
-        map_location = 'cuda:%d' % rank
+        # Use device-agnostic map_location
+        map_location = {'cuda:%d' % rank: device} if device.type == 'cuda' else device
         weight_loc = os.path.join(other_args.exp_dir, latest)
         weights = torch.load(weight_loc, map_location=map_location)
         print("Checkpoint loaded {}".format(weight_loc))
@@ -70,17 +75,17 @@ def test_net(rank, other_args):
                 myout = myout.reshape(1, 2, dataset.sound_size[1], dataset.sound_size[2])
                 mygt = gt.numpy()
                 mygt = mygt.reshape(1, 2, dataset.sound_size[1], dataset.sound_size[2])
+                mygt = np.exp(mygt * dataset.std.numpy() + dataset.mean.numpy()) - 1e-3
+                myout = np.exp(myout * dataset.std.numpy() + dataset.mean.numpy()) - 1e-3
                 container["{}_{}".format(ori, dataset.sound_name)]= [myout, mygt, dataset.sound_size]
     with open(save_name, "wb") as saver_file_obj:
         pickle.dump(container, saver_file_obj)
         print("Results saved to {}".format(save_name))
-    return 1
-
+    return container
 
 if __name__ == '__main__':
     cur_args = Options().parse()
     exp_name = cur_args.exp_name
-
     exp_name_filled = exp_name.format(cur_args.apt)
     cur_args.exp_name = exp_name_filled
 
