@@ -92,7 +92,7 @@ class Options():
         if not self.initialized:
             self.initialize()
         self.opt = self.parser.parse_args()
-        self.opt.max_len = {"georg-binaural": 708}  # Maximum length of the input spectrograms, used for padding
+        self.opt.max_len = {"georg-binaural": 89}  # Maximum length of the input spectrograms, used for padding
 
         # max_len_1024 = {"apartment_1": 52, "apartment_2": 44, "frl_apartment_2": 55, "frl_apartment_4": 53,
         #                 "office_4": 40, "room_2": 43}
