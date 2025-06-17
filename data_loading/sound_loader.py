@@ -60,7 +60,7 @@ class soundsamples(torch.utils.data.Dataset):
             print("Std shape:", mean_std[1].shape)
             print("Std min/max:", np.min(mean_std[1]), np.max(mean_std[1]))
         self.mean = torch.from_numpy(mean_std[0]).float()[None]
-        self.std = 3.0 * torch.from_numpy(mean_std[1]).float()[None]
+        self.std = 300.0 * torch.from_numpy(mean_std[1]).float()[None]
         print("Final std min/max:", torch.min(self.std), torch.max(self.std))
 
         with open(coor_path, "r") as f:
