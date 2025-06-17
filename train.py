@@ -42,7 +42,7 @@ def train_net(rank, world_size, freeport, other_args):
     dataset = soundsamples(other_args)
     train_sampler = torch.utils.data.distributed.DistributedSampler(dataset, num_replicas=world_size, rank=rank)
     ranked_worker_init = functools.partial(worker_init_fn, myrank_info=rank)
-    sound_loader = torch.utils.data.DataLoader(dataset, batch_size=other_args.batch_size//world_size, shuffle=False, num_workers=3, worker_init_fn=ranked_worker_init, persistent_workers=True, sampler=train_sampler,drop_last=False)
+    sound_loader = torch.utils.data.DataLoader(dataset, batch_size=other_args.batch_size//world_size, shuffle=False, num_workers=1, worker_init_fn=ranked_worker_init, persistent_workers=True, sampler=train_sampler,drop_last=False)
 
     xyz_embedder = embedding_module_log(num_freqs=other_args.num_freqs, ch_dim=2, max_freq=7).to(output_device)
     time_embedder = embedding_module_log(num_freqs=other_args.num_freqs, ch_dim=2).to(output_device)

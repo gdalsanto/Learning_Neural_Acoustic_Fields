@@ -129,7 +129,7 @@ class soundsamples(torch.utils.data.Dataset):
                 start_position = (torch.from_numpy((non_norm_start - self.min_pos)/((self.max_pos-self.min_pos)+eps))[None] - 0.5) * 2.0
                 start_position = torch.clamp(start_position, min=-1.0, max=1.0)
 
-                end_position = (torch.from_numpy((non_norm_end - self.min_pos)/(self.max_pos-self.min_pos))[None] - 0.5) * 2.0
+                end_position = (torch.from_numpy((non_norm_end - self.min_pos)/(self.max_pos-self.min_pos)+eps)[None] - 0.5) * 2.0
                 end_position = torch.clamp(end_position, min=-1.0, max=1.0)
 
                 total_position = torch.cat((start_position, end_position), dim=1).float()
