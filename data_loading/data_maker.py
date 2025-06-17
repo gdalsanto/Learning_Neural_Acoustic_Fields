@@ -165,9 +165,9 @@ if __name__ == "__main__":
             f_mag.create_dataset('{}_{:04d}'.format(orientations[orientation], ff), data=real_spec.astype(np.half))
             f_phase.create_dataset('{}_{:04d}'.format(orientations[orientation], ff), data=img_spec.astype(np.half))
             if ff < raw_data.num_train_receivers:
-                train_test_split[0][orientations[orientation]].append('{:04d}'.format(ff))
+                train_test_split[0][orientations[orientation]].append('{:04d}_{:04d}'.format(ff, raw_data.num_train_receivers + raw_data.num_infer_receivers))
             else:
-                train_test_split[1][orientations[orientation]].append('{:04d}'.format(ff))
+                train_test_split[1][orientations[orientation]].append('{:04d}_{:04d}'.format(ff, raw_data.num_train_receivers + raw_data.num_infer_receivers))
     print("Max length {}".format(room_name), np.max(length_tracker))
     f_mag.close()
     f_phase.close()
@@ -216,11 +216,12 @@ if __name__ == "__main__":
     with open(points_file_path, 'w') as f:
         for i, pos in enumerate(np.concatenate((raw_data.train_receiver_pos, raw_data.infer_receiver_pos), axis=0)):
             f.write("{:04d}\t{}\t{}\t{}\n".format(i, pos[0], pos[1], pos[2]))
-
+        # write the sound source position
+        f.write("{:04d}\t2.0\t2.0\t1.5\n".format(i+1))
     # Create _minmax.pkl
     minmax_file_path = os.path.join('data-local', f'{room_name}_minmax.pkl')
-    min_pos = np.min(np.concatenate((raw_data.train_receiver_pos, raw_data.infer_receiver_pos), axis=0))
-    max_pos = np.max(np.concatenate((raw_data.train_receiver_pos, raw_data.infer_receiver_pos), axis=0))
+    min_pos = np.min(np.concatenate((raw_data.train_receiver_pos, raw_data.infer_receiver_pos), axis=0), axis=0)
+    max_pos = np.max(np.concatenate((raw_data.train_receiver_pos, raw_data.infer_receiver_pos), axis=0), axis=0)
 
     with open(minmax_file_path, 'wb') as f:
         pickle.dump((min_pos, max_pos), f)

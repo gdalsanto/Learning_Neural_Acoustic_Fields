@@ -92,7 +92,7 @@ class soundsamples(torch.utils.data.Dataset):
                     self.sound_data = h5py.File(self.full_path, 'r')
 
                 pos_id = self.sound_files[orientation][idx]
-                query_str = orientation + "_" + pos_id
+                query_str = orientation + "_" + (pos_id.split(".")[0]).split("_")[0]
 
                 spec_data = torch.from_numpy(self.sound_data[query_str][:]).float()
                 position = (pos_id.split(".")[0]).split("_")
