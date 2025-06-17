@@ -127,6 +127,10 @@ def train_net(rank, world_size, freeport, other_args):
                 position_embed = xyz_embedder(position).expand(-1, PIXEL_COUNT, -1)
                 freq_embed = freq_embedder(freqs)
                 time_embed = time_embedder(times)
+            if epoch == 0 & cur_iter == 0:
+                print("Position embed", position_embed)
+                print("Freq embed", freq_embed)
+                print("Time embed", time_embed)
 
             total_in = torch.cat((position_embed, freq_embed, time_embed), dim=2)
             optimizer.zero_grad(set_to_none=False)
