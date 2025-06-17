@@ -6,4 +6,4 @@ matplotlib
 scikit-learn
 librosa
 scikit-image
-torchaudoo
+torchaudio
