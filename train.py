@@ -27,6 +27,10 @@ def worker_init_fn(worker_id, myrank_info):
     np.random.seed(worker_id + myrank_info*100)
 
 def train_net(rank, world_size, freeport, other_args):
+
+    if torch.cuda.is_available():
+        torch.cuda.set_device(rank)
+        
     os.environ['MASTER_ADDR'] = 'localhost'
     os.environ['MASTER_PORT'] = freeport
     output_device = rank
