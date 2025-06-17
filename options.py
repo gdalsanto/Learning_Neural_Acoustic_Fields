@@ -26,7 +26,7 @@ class Options():
         parser.add_argument('--save_loc', default="./results", type=str)
 
 
-        parser.add_argument('--apt', default='apartment_1', choices=['apartment_1', 'apartment_2', 'frl_apartment_2', 'frl_apartment_4', 'office_4', 'room_2'], type=str)
+        parser.add_argument('--apt', default='georg-binaural', choices=['georg-binaural'], type=str)
         parser.add_argument('--exp_name', default="{}")
 
         # dataset arguments

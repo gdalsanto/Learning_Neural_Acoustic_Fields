@@ -224,6 +224,3 @@ if __name__ == "__main__":
 
     with open(minmax_file_path, 'wb') as f:
         pickle.dump((min_pos, max_pos), f)
-
-    
-    # 
