@@ -69,12 +69,12 @@ class soundsamples(torch.utils.data.Dataset):
         self.positions = dict()
         for row in coords:
             readout = [float(xyz) for xyz in row[1:]]
-            self.positions[row[0]] = [readout[0], -readout[1]]
+            self.positions[row[0]] = [readout[0], readout[1]]
 
         with open(os.path.join(minmax_base, room_name+"_minmax.pkl"), "rb") as min_max_loader:
             min_maxes = pickle.load(min_max_loader)
-            self.min_pos = min_maxes[0][[0, 2]]
-            self.max_pos = min_maxes[1][[0, 2]]
+            self.min_pos = min_maxes[0][[0, 1]]
+            self.max_pos = min_maxes[1][[0, 1]]
             # This is since dimension 0 and 2 are floor plane
 
         # values = np.array(list(self.positions.values()))

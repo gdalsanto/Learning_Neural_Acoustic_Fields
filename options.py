@@ -47,7 +47,7 @@ class Options():
         parser.add_argument('--ramdisk_path', default="/mnt/ramdisk", type=str) # RAMdisk for acceleration
 
         # training arguments
-        parser.add_argument('--gpus', default=4, type=int) # Number of GPUs to use
+        parser.add_argument('--gpus', default=1, type=int) # Number of GPUs to use (1 for CPU)
         parser.add_argument('--epochs', default=200, type=int) # Total epochs to train for
         parser.add_argument('--resume', default=0, type=bool_flag) # Load weights or not from latest checkpoint
         parser.add_argument('--batch_size', default=20, type=int)
@@ -86,6 +86,35 @@ class Options():
         parser.add_argument('--net_feat_loc', default="network_feats_scatter", type=str) # a subset of the points in this folder is used for TSNE & linear fit
         parser.add_argument('--net_feat_loc2', default="network_feats_grid", type=str)
         parser.add_argument('--emitter_loc', default=[0.5, -3.0], type=list_float_flag)  # Where do we position the emitter? [0.5, -3.0] for apartment_1, [-0.2, 0.0] for apartment_2
+
+        # CPU-specific arguments
+        parser.add_argument('--use_cpu', action='store_true', help='Force CPU usage even if GPU is available')
+        parser.add_argument('--num_workers', default=1, type=int, help='Number of CPU workers for data loading')
+        parser.add_argument('--no_spawn', action='store_true', help='Run training without multiprocessing spawn (useful for CPU training and debugging)')
+
+        self.initialized = True
+        return parser
+
+    def gather_options(self):
+        if not self.initialized:
+            parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+            parser = self.initialize(parser)
+
+        opt, _ = parser.parse_known_args()
+        self.parser = parser
+        return parser.parse_args()
+
+    def print_options(self, opt):
+        message = ''
+        message += '----------------- Options ---------------\n'
+        for k, v in sorted(vars(opt).items()):
+            comment = ''
+            default = self.parser.get_default(k)
+            if v != default:
+                comment = '\t[default: %s]' % str(default)
+            message += '{:>25}: {:<30}{}\n'.format(str(k), str(v), comment)
+        message += '----------------- End -------------------'
+        print(message)
 
     def parse(self):
         # initialize parser

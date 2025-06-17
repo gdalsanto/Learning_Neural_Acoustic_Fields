@@ -224,7 +224,7 @@ if __name__ == "__main__":
             pickle.dump([mean_val, std_val], mean_std_file)
     
     # Create points.txt
-    points_file_path = os.path.join('metadata', room_name, 'points.txt')
+    points_file_path = os.path.join('metadata', 'replica', room_name, 'points.txt')
 
     with open(points_file_path, 'w') as f:
         for i, pos in enumerate(np.concatenate((raw_data.train_receiver_pos, raw_data.infer_receiver_pos), axis=0)):
@@ -233,8 +233,8 @@ if __name__ == "__main__":
         f.write("{:04d}\t2.0\t2.0\t1.5\n".format(i+1))
     # Create _minmax.pkl
     minmax_file_path = os.path.join('metadata', 'minmax',f'{room_name}_minmax.pkl')
-    min_pos = np.min(np.concatenate((raw_data.train_receiver_pos, raw_data.infer_receiver_pos), axis=0), axis=0)
-    max_pos = np.max(np.concatenate((raw_data.train_receiver_pos, raw_data.infer_receiver_pos), axis=0), axis=0)
+    min_pos = np.array((0, 0, 1.5))
+    max_pos =  np.array((10, 13, 1.5))
 
     with open(minmax_file_path, 'wb') as f:
         pickle.dump((min_pos, max_pos), f)

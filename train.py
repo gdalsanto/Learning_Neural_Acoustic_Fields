@@ -1,5 +1,6 @@
 import torch
-torch.backends.cudnn.benchmark = True
+# Remove CUDA-specific benchmark setting
+# torch.backends.cudnn.benchmark = True
 
 from data_loading.sound_loader import soundsamples
 import torch.multiprocessing as mp
@@ -20,29 +21,36 @@ def find_free_port():
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
         s.bind(('localhost', 0))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        return s.getsockname()[1]
+        return str(s.getsockname()[1])  # Return as string immediately
 
 def worker_init_fn(worker_id, myrank_info):
-    # print(worker_id + myrank_info*100, "SEED")
     np.random.seed(worker_id + myrank_info*100)
 
 def train_net(rank, world_size, freeport, other_args):
-
-    if torch.cuda.is_available():
+    # Set device based on availability
+    device = torch.device('cuda' if torch.cuda.is_available() and not other_args.use_cpu else 'cpu')
+    if device.type == 'cuda':
         torch.cuda.set_device(rank)
+    output_device = device
 
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = freeport
-    output_device = rank
-    dist.init_process_group("nccl", rank=rank, world_size=world_size)
+    # Initialize distributed training only if not using no_spawn
+    if not other_args.no_spawn:
+        os.environ['MASTER_ADDR'] = 'localhost'
+        os.environ['MASTER_PORT'] = str(freeport)
+        # Use 'gloo' backend for CPU, 'nccl' for GPU
+        backend = 'gloo' if device.type == 'cpu' else 'nccl'
+        dist.init_process_group(backend, rank=rank, world_size=world_size)
 
     pi = math.pi
     PIXEL_COUNT=other_args.pixel_count
 
     dataset = soundsamples(other_args)
-    train_sampler = torch.utils.data.distributed.DistributedSampler(dataset, num_replicas=world_size, rank=rank)
-    ranked_worker_init = functools.partial(worker_init_fn, myrank_info=rank)
-    sound_loader = torch.utils.data.DataLoader(dataset, batch_size=other_args.batch_size//world_size, shuffle=False, num_workers=1, worker_init_fn=ranked_worker_init, persistent_workers=True, sampler=train_sampler,drop_last=False)
+    if not other_args.no_spawn:
+        train_sampler = torch.utils.data.distributed.DistributedSampler(dataset, num_replicas=world_size, rank=rank)
+        ranked_worker_init = functools.partial(worker_init_fn, myrank_info=rank)
+        sound_loader = torch.utils.data.DataLoader(dataset, batch_size=other_args.batch_size//world_size, shuffle=False, num_workers=other_args.num_workers, worker_init_fn=ranked_worker_init, persistent_workers=True, sampler=train_sampler,drop_last=False)
+    else:
+        sound_loader = torch.utils.data.DataLoader(dataset, batch_size=other_args.batch_size, shuffle=True, num_workers=other_args.num_workers)
 
     xyz_embedder = embedding_module_log(num_freqs=other_args.num_freqs, ch_dim=2, max_freq=7).to(output_device)
     time_embedder = embedding_module_log(num_freqs=other_args.num_freqs, ch_dim=2).to(output_device)
@@ -50,7 +58,7 @@ def train_net(rank, world_size, freeport, other_args):
 
     auditory_net = kernel_residual_fc_embeds(input_ch=126, intermediate_ch=other_args.features, grid_ch=other_args.grid_features, num_block=other_args.layers, grid_gap=other_args.grid_gap, grid_bandwidth=other_args.bandwith_init, bandwidth_min=other_args.min_bandwidth, bandwidth_max=other_args.max_bandwidth, float_amt=other_args.position_float, min_xy=dataset.min_pos, max_xy=dataset.max_pos).to(output_device)
 
-    if rank == 0:
+    if rank == 0 or other_args.no_spawn:
         print("Dataloader requires {} batches".format(len(sound_loader)))
 
     start_epoch = 1
@@ -59,38 +67,47 @@ def train_net(rank, world_size, freeport, other_args):
     if other_args.resume:
         if not os.path.isdir(other_args.exp_dir):
             print("Missing save dir, exiting")
-            dist.barrier()
-            dist.destroy_process_group()
+            if not other_args.no_spawn:
+                dist.barrier()
+                dist.destroy_process_group()
             return 1
         else:
             current_files = sorted(os.listdir(other_args.exp_dir))
             if len(current_files)>0:
                 latest = current_files[-1]
                 start_epoch = int(latest.split(".")[0]) + 1
-                if rank == 0:
+                if rank == 0 or other_args.no_spawn:
                     print("Identified checkpoint {}".format(latest))
                 if start_epoch >= (other_args.epochs+1):
-                    dist.barrier()
-                    dist.destroy_process_group()
+                    if not other_args.no_spawn:
+                        dist.barrier()
+                        dist.destroy_process_group()
                     return 1
-                map_location = 'cuda:%d' % rank
+                # Use device-agnostic map_location
+                map_location = {'cuda:%d' % rank: device} if device.type == 'cuda' else device
                 weight_loc = os.path.join(other_args.exp_dir, latest)
                 weights = torch.load(weight_loc, map_location=map_location)
-                if rank == 0:
+                if rank == 0 or other_args.no_spawn:
                     print("Checkpoint loaded {}".format(weight_loc))
                 auditory_net.load_state_dict(weights["network"])
                 loaded_weights = True
                 if "opt" in weights:
                     load_opt = 1
-                dist.barrier()
+                if not other_args.no_spawn:
+                    dist.barrier()
         if loaded_weights is False:
             print("Resume indicated, but no weights found!")
-            dist.barrier()
-            dist.destroy_process_group()
+            if not other_args.no_spawn:
+                dist.barrier()
+                dist.destroy_process_group()
             exit()
 
     # We have conditional forward, must set find_unused_parameters to true
-    ddp_auditory_net = DDP(auditory_net, find_unused_parameters=True, device_ids=[rank])
+    if not other_args.no_spawn:
+        ddp_auditory_net = DDP(auditory_net, find_unused_parameters=True, device_ids=[rank] if device.type == 'cuda' else None)
+    else:
+        ddp_auditory_net = auditory_net
+
     criterion = torch.nn.MSELoss()
     orig_container = []
     grid_container = []
@@ -107,10 +124,10 @@ def train_net(rank, world_size, freeport, other_args):
     if load_opt:
         print("loading optimizer")
         optimizer.load_state_dict(weights["opt"])
-        dist.barrier()
+        if not other_args.no_spawn:
+            dist.barrier()
 
-
-    if rank == 0:
+    if rank == 0 or other_args.no_spawn:
         old_time = time()
     for epoch in range(start_epoch, other_args.epochs+1):
         total_losses = 0
@@ -142,7 +159,7 @@ def train_net(rank, world_size, freeport, other_args):
                 print("Failure", foward_exception)
                 continue
             loss = criterion(output, gt)
-            if rank==0:
+            if rank==0 or other_args.no_spawn:
                 total_losses += loss.detach()
                 cur_iter += 1
             loss.backward()
@@ -158,21 +175,22 @@ def train_net(rank, world_size, freeport, other_args):
             else:
                 param_group['lr'] = new_lrate
             par_idx += 1
-        if rank == 0:
+        if rank == 0 or other_args.no_spawn:
             avg_loss = total_losses.item() / cur_iter
             print("{}: Ending epoch {}, loss {}, time {}".format(other_args.exp_name, epoch, avg_loss, time() - old_time))
             old_time = time()
-        if rank == 0 and (epoch%20==0 or epoch==1 or epoch>(other_args.epochs-3)):
-
+        if (rank == 0 or other_args.no_spawn) and (epoch%20==0 or epoch==1 or epoch>(other_args.epochs-3)):
             save_name = str(epoch).zfill(5)+".chkpt"
             save_dict = {}
-            save_dict["network"] = ddp_auditory_net.module.state_dict()
+            save_dict["network"] = ddp_auditory_net.module.state_dict() if not other_args.no_spawn else ddp_auditory_net.state_dict()
+            save_dict["opt"] = optimizer.state_dict()
             torch.save(save_dict, os.path.join(other_args.exp_dir, save_name))
+            
     print("Wrapping up training {}".format(other_args.exp_name))
-    dist.barrier()
-    dist.destroy_process_group()
+    if not other_args.no_spawn:
+        dist.barrier()
+        dist.destroy_process_group()
     return 1
-
 
 if __name__ == '__main__':
     cur_args = Options().parse()
@@ -188,5 +206,11 @@ if __name__ == '__main__':
     if not os.path.isdir(exp_dir):
         os.mkdir(exp_dir)
     world_size = cur_args.gpus
-    myport = str(find_free_port())
-    mp.spawn(train_net, args=(world_size, myport, cur_args), nprocs=world_size, join=True)
+    
+    if cur_args.no_spawn:
+        # Run training without multiprocessing spawn
+        train_net(0, 1, None, cur_args)
+    else:
+        # Run training with multiprocessing spawn
+        freeport = find_free_port()
+        mp.spawn(train_net, args=(world_size, freeport, cur_args), nprocs=world_size, join=True)

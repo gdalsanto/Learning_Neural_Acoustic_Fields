@@ -43,7 +43,7 @@ class kernel_residual_fc_embeds(nn.Module):
         self.probe = probe
 
         ### Make the grid
-
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         grid_coors_x = np.arange(min_xy[0], max_xy[0], grid_gap)
         grid_coors_y = np.arange(min_xy[1], max_xy[1], grid_gap)
         grid_coors_x, grid_coors_y = np.meshgrid(grid_coors_x, grid_coors_y)
@@ -56,7 +56,7 @@ class kernel_residual_fc_embeds(nn.Module):
         self.bandwidths = nn.Parameter(torch.zeros(len(grid_coors_x))+grid_bandwidth, requires_grad=True)
         self.register_buffer("grid_coors_xy",torch.from_numpy(xy_train).float(), persistent=True)
         self.xy_offset = nn.Parameter(torch.zeros_like(self.grid_coors_xy), requires_grad=True)
-        self.grid_0 = nn.Parameter(torch.randn(len(grid_coors_x),grid_ch, device="cpu").float() / np.sqrt(float(grid_ch)), requires_grad=True)
+        self.grid_0 = nn.Parameter(torch.randn(len(grid_coors_x),grid_ch, device=device).float() / np.sqrt(float(grid_ch)), requires_grad=True)
 
     def forward(self, input_stuff, rot_idx, sound_loc=None):
         SAMPLES = input_stuff.shape[1]
