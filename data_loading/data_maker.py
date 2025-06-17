@@ -167,7 +167,7 @@ if __name__ == "__main__":
                 cur_file = raw_data.train_brirs[ff, orientation, ...].astype(np.float32)
                 # change the shape from [n_samples, channels] to [channels, n_samples]
                 cur_file = cur_file.T
-                loaded_wav = load_audio(cur_file[:, :int(32000*0.5)])
+                loaded_wav = load_audio(cur_file)
             except Exception as e:
                 print("0 length wav", cur_file, e)
                 continue
