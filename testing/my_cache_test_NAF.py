@@ -171,7 +171,6 @@ def test_net(rank, other_args):
     with open(save_name, "wb") as saver_file_obj:
         pickle.dump(dataclasses.asdict(naf_dataset), saver_file_obj)
         print("Results saved to {}".format(save_name))
-    return 
 
 if __name__ == '__main__':
     cur_args = Options().parse()
