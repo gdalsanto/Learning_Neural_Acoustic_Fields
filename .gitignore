@@ -6,3 +6,5 @@ __pycache__/
 /metadata-archive-0.6
 .DS_Store
 /results
+/metadata/magnitudes
+/metadata/phases
