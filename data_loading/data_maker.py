@@ -112,7 +112,7 @@ def pad(input_arr, max_len_in, constant=np.log(1e-3)):
 if __name__ == "__main__":
     
     # Path to the .pkl file
-    pkl_path = os.path.join('data-local', 'naf_dataset_grid_spacing=0.6m.pkl')
+    pkl_path = os.path.join('data-local', 'naf_dataset_grid_spacing=0.9m.pkl')
 
     # Load the .pkl file (this may take a while if the file is large)
     with open(pkl_path, 'rb') as f:
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     os.makedirs(phase_path, exist_ok=True)
 
     spec_getter = get_spec()
-    room_name = "georg-binaural"
+    room_name = "georg-binaural-0.9"
     length_tracker = []
 
     mag_object = os.path.join(mag_path, room_name)
