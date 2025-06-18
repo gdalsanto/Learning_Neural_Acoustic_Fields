@@ -87,7 +87,8 @@ def test_net(rank, other_args):
         
     auditory_net.eval()
     container = dict()
-    save_name = os.path.join(other_args.result_output_dir, other_args.apt+"_NAF_0_99.pkl")
+    split = "100_199"
+    save_name = os.path.join(other_args.result_output_dir, other_args.apt+f"_NAF_{split}.pkl")
     first_waveform = True
     num_orientations = 4
     infer_positions = np.zeros((len(dataset.sound_files_test['0']), 3))
@@ -96,7 +97,7 @@ def test_net(rank, other_args):
             num_sample_test = len(dataset.sound_files_test[["0", "90", "180", "270"][ori]])
             ori_offset = 0
             print("Total {} for orientation {}".format(num_sample_test, str(ori)))
-            for test_id in range(0, 100):
+            for test_id in range(100, 200):
                 ori_offset += 1
                 if ori_offset%100 == 0:
                     print("Currently on {}".format(ori_offset))
@@ -152,10 +153,10 @@ def test_net(rank, other_args):
                 infer_positions[test_id, :] = np.concatenate((non_norm_position.squeeze()[:2].cpu().numpy(), np.array([1.5])), axis=0)
                 # every 50 samples save one random waveform as .wav files
                 if test_id == 0:
-                    wav_file_name = os.path.join(other_args.result_output_dir, f"{other_args.apt}_infer_{ori}_{test_id:04d}.wav")
+                    wav_file_name = os.path.join(other_args.result_output_dir, f"{other_args.apt}_infer_{ori}_{test_id:04d}_split_{split}.wav")
                     # librosa.output.write_wav(wav_file_name, myout_wavs[idx, ori, :, :], sr=32000)
                     sf.write(wav_file_name, myout_wavs[test_id, ori, :, :], 32000)
-                    gt_wav_file_name = os.path.join(other_args.result_output_dir, f"{other_args.apt}_gt_{ori}_{test_id:04d}.wav")
+                    gt_wav_file_name = os.path.join(other_args.result_output_dir, f"{other_args.apt}_gt_{ori}_{test_id:04d}_split_{split}.wav")
                     # librosa.output.write_wav(gt_wav_file_name, gt_wavs[idx, ori, :, :], sr=32000)
                     sf.write(gt_wav_file_name, gt_wavs[test_id, ori, :, :], 32000)
 
