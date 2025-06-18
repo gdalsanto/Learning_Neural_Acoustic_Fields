@@ -26,7 +26,7 @@ class Options():
         parser.add_argument('--save_loc', default="./results", type=str)
 
 
-        parser.add_argument('--apt', default='georg-binaural', choices=['georg-binaural', 'georg-binaural-0.6', 'georg-binaural-0.9'], type=str)
+        parser.add_argument('--apt', default='georg-binaural', choices=['georg-binaural', 'georg-binaural-0.6', 'georg-binaural-09'], type=str)
         parser.add_argument('--exp_name', default="{}")
 
         # dataset arguments
@@ -121,7 +121,7 @@ class Options():
         if not self.initialized:
             self.initialize()
         self.opt = self.parser.parse_args()
-        self.opt.max_len = {"georg-binaural": 708, "georg-binaural-0.6": 708, "georg-binaural-0.6": 708}  # Maximum length of the input spectrograms, used for padding
+        self.opt.max_len = {"georg-binaural": 708, "georg-binaural-0.6": 708, "georg-binaural-09": 708}  # Maximum length of the input spectrograms, used for padding
 
         # max_len_1024 = {"apartment_1": 52, "apartment_2": 44, "frl_apartment_2": 55, "frl_apartment_4": 53,
         #                 "office_4": 40, "room_2": 43}

@@ -126,7 +126,7 @@ if __name__ == "__main__":
     os.makedirs(phase_path, exist_ok=True)
 
     spec_getter = get_spec()
-    room_name = "georg-binaural-0.9"
+    room_name = "georg-binaural-09"
     length_tracker = []
 
     mag_object = os.path.join(mag_path, room_name)
