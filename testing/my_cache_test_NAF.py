@@ -151,7 +151,7 @@ def test_net(rank, other_args):
                 gt_wavs[test_id, ori, :, :] = gt_wav
                 infer_positions[test_id, :] = np.concatenate((non_norm_position.squeeze()[:2].cpu().numpy(), np.array([1.5])), axis=0)
                 # every 50 samples save one random waveform as .wav files
-                if (test_id + 1) % 5 == 0:
+                if test_id == 0:
                     wav_file_name = os.path.join(other_args.result_output_dir, f"{other_args.apt}_infer_{ori}_{test_id:04d}.wav")
                     # librosa.output.write_wav(wav_file_name, myout_wavs[idx, ori, :, :], sr=32000)
                     sf.write(wav_file_name, myout_wavs[test_id, ori, :, :], 32000)
