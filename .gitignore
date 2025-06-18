@@ -2,3 +2,7 @@ naf-env/
 .vscode
 /data-local
 __pycache__/
+/results/inference_out
+/metadata-archive-0.6
+.DS_Store
+/results
