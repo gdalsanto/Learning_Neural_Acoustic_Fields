@@ -87,7 +87,7 @@ def test_net(rank, other_args):
         
     auditory_net.eval()
     container = dict()
-    save_name = os.path.join(other_args.result_output_dir, other_args.apt+"_NAF.pkl")
+    save_name = os.path.join(other_args.result_output_dir, other_args.apt+"_NAF_0_99.pkl")
     first_waveform = True
     num_orientations = 4
     infer_positions = np.zeros((len(dataset.sound_files_test['0']), 3))
@@ -96,7 +96,7 @@ def test_net(rank, other_args):
             num_sample_test = len(dataset.sound_files_test[["0", "90", "180", "270"][ori]])
             ori_offset = 0
             print("Total {} for orientation {}".format(num_sample_test, str(ori)))
-            for test_id in range(num_sample_test):
+            for test_id in range(0, 100):
                 ori_offset += 1
                 if ori_offset%100 == 0:
                     print("Currently on {}".format(ori_offset))
