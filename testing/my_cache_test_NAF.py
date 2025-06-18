@@ -83,7 +83,7 @@ def test_net(rank, other_args):
         print("Weights not found")
 
     # Load ground truth phase information
-    phase_path = os.path.join("metadata", "phases", f"{other_args.apt}.h5")
+    # phase_path = os.path.join("metadata", "phases", f"{other_args.apt}.h5")
         
     auditory_net.eval()
     container = dict()
@@ -123,9 +123,9 @@ def test_net(rank, other_args):
                 # convert to wav file 
                 myout_wav = np.concatenate((np.expand_dims(to_wave(myout[0, 0, ...]), axis=-1), np.expand_dims(to_wave(myout[0, 1, ...]), axis= -1)), -1)
                 
-                with h5py.File(phase_path, 'r') as f:
-                    phase_key = f"{other_args.vis_ori}_{test_id:04d}"
-                    orig_phase = f[phase_key][:]
+                # with h5py.File(phase_path, 'r') as f:
+                #     phase_key = f"{other_args.vis_ori}_{test_id:04d}"
+                #     orig_phase = f[phase_key][:]
                 
                 # # Save ground truth with original phase
                 # gt_wav = np.concatenate((np.expand_dims(to_wave(mygt[0, 0, ...], orig_phase=orig_phase[0]), axis=-1), 
