@@ -185,7 +185,9 @@ def train_net(rank, world_size, freeport, other_args):
             save_dict["network"] = ddp_auditory_net.module.state_dict() if not other_args.no_spawn else ddp_auditory_net.state_dict()
             save_dict["opt"] = optimizer.state_dict()
             torch.save(save_dict, os.path.join(other_args.exp_dir, save_name))
-            
+    # save the training time in a text file inside the output directory 
+    with open(os.path.join(other_args.exp_dir, "training_time.txt"), "a") as f:
+        f.write("Training time of {} epochs: {:.3f} s\n".format(epoch+1, time() - old_time))
     print("Wrapping up training {}".format(other_args.exp_name))
     if not other_args.no_spawn:
         dist.barrier()
