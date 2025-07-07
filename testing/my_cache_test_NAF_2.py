@@ -52,7 +52,7 @@ def test_net(rank, other_args):
     
     # Load original ground truth BRIR data from pickle file
     print("Loading original ground truth BRIR data from pickle file")
-    original_pkl_path = os.path.join('data-local', 'naf_dataset_grid_spacing=0.6m.pkl')
+    original_pkl_path = os.path.join('data-local', 'naf_dataset_grid_spacing=06m.pkl')
     with open(original_pkl_path, 'rb') as f:
         original_data = pickle.load(f)
     
