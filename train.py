@@ -164,7 +164,6 @@ def train_net(rank, world_size, freeport, other_args):
                 cur_iter += 1
             loss.backward()
             optimizer.step()
-        print("{}: Ending epoch {}, loss {}, time {}".format(other_args.exp_name, epoch, avg_loss, time() - epoch_time))
         total_time += time() - epoch_time
         decay_rate = other_args.lr_decay
         new_lrate_grid = other_args.lr_init * (decay_rate ** (epoch / other_args.epochs))
