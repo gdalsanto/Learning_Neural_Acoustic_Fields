@@ -18,6 +18,7 @@ from options import Options
 import librosa 
 import h5py
 import soundfile as sf
+import time
 
 def to_wave(input_spec, orig_phase=None):
     renorm_input = np.concatenate((input_spec, input_spec[-1:]*0.0), axis=0)
@@ -90,6 +91,7 @@ def test_net(rank, other_args):
     num_orientations = 4
     
     split_size = 50
+    inference_time = 0.0
     with torch.no_grad():
         for ori in [0, 1, 2, 3]:
             num_sample_test = len(dataset.sound_files_test[["0", "90", "180", "270"][ori]])
@@ -113,7 +115,9 @@ def test_net(rank, other_args):
                     freq_embed = freq_embedder(freqs)
                     time_embed = time_embedder(times)
                     total_in = torch.cat((position_embed, freq_embed, time_embed), dim=2)
+                    start_time = time.time()
                     output = auditory_net(total_in, degree, non_norm_position.squeeze(1)).squeeze(3).transpose(1, 2)
+                    inference_time += time.time() - start_time
                     myout = output.cpu().numpy()
                     myout = myout.reshape(1, 2, dataset.sound_size[1], dataset.sound_size[2])
                     mygt = gt.numpy()
@@ -158,8 +162,10 @@ def test_net(rank, other_args):
                 with open(save_name, "wb") as saver_file_obj:
                     pickle.dump(dataclasses.asdict(naf_dataset), saver_file_obj)
                     print("Results saved to {}".format(save_name))
-
                 first_waveform = True
+    # save a text file with the inference time
+    with open(os.path.join(other_args.result_output_dir, "inference_time.txt"), "a") as f:
+        f.write("Inference time: {:.3f} s\n".format(inference_time))
 
 if __name__ == '__main__':
     cur_args = Options().parse()
