@@ -127,11 +127,11 @@ def train_net(rank, world_size, freeport, other_args):
         if not other_args.no_spawn:
             dist.barrier()
 
-    if rank == 0 or other_args.no_spawn:
-        old_time = time()
+    total_time = 0.0
     for epoch in range(start_epoch, other_args.epochs+1):
         total_losses = 0
         cur_iter = 0
+        epoch_time = time()
         for data_stuff in sound_loader:
             gt = data_stuff[0].to(output_device, non_blocking=True)
             degree = data_stuff[1].to(output_device, non_blocking=True)
@@ -164,10 +164,11 @@ def train_net(rank, world_size, freeport, other_args):
                 cur_iter += 1
             loss.backward()
             optimizer.step()
+        print("{}: Ending epoch {}, loss {}, time {}".format(other_args.exp_name, epoch, avg_loss, time() - epoch_time))
+        total_time += time() - epoch_time
         decay_rate = other_args.lr_decay
         new_lrate_grid = other_args.lr_init * (decay_rate ** (epoch / other_args.epochs))
         new_lrate = other_args.lr_init * (decay_rate ** (epoch / other_args.epochs))
-
         par_idx = 0
         for param_group in optimizer.param_groups:
             if par_idx == 0:
@@ -177,17 +178,16 @@ def train_net(rank, world_size, freeport, other_args):
             par_idx += 1
         if rank == 0 or other_args.no_spawn:
             avg_loss = total_losses.item() / cur_iter
-            print("{}: Ending epoch {}, loss {}, time {}".format(other_args.exp_name, epoch, avg_loss, time() - old_time))
-            old_time = time()
         if (rank == 0 or other_args.no_spawn) and (epoch%20==0 or epoch==1 or epoch>(other_args.epochs-3)):
             save_name = str(epoch).zfill(5)+".chkpt"
             save_dict = {}
             save_dict["network"] = ddp_auditory_net.module.state_dict() if not other_args.no_spawn else ddp_auditory_net.state_dict()
             save_dict["opt"] = optimizer.state_dict()
             torch.save(save_dict, os.path.join(other_args.exp_dir, save_name))
+
     # save the training time in a text file inside the output directory 
     with open(os.path.join(other_args.exp_dir, "training_time.txt"), "a") as f:
-        f.write("Training time of {} epochs: {:.3f} s\n".format(epoch+1, time() - old_time))
+        f.write("Training time of {} epochs: {:.3f} s\n".format(epoch+1, total_time))
     print("Wrapping up training {}".format(other_args.exp_name))
     if not other_args.no_spawn:
         dist.barrier()
